@@ -21,36 +21,15 @@ const notify = (listener, state, value, reason) => {
   }
 }
 
-const notifyAll = promise => {
-  let { listeners, state, value, reason, isLastest } = promise
-  if (state === REJECTED && isLastest) {
-    console.error(`Uncaught error in promise ${JSON.stringify(reason)}`)
-  }
+const notifyAll = delay(promise => {
+  let { listeners, state, value, reason } = promise
   while (listeners.length) notify(listeners.shift(), state, value, reason)
-}
-
-const macroTasks = []
-const microTasks = []
-const clearTasks = delay(() => {
-  while (macroTasks.length) notifyAll(macroTasks.shift())
-  while (microTasks.length) notifyAll(microTasks.shift())
 })
-const processTask = promise => {
-  if (promise.state === PENDING) return
-  if (promise.state === REJECTED && !promise.listeners.length) {
-    microTasks.push(promise)
-  } else {
-    macroTasks.push(promise)
-  }
-  clearTasks()
-}
 
 function Promise(f) {
-  this.isLastest = true
   this.state = PENDING
   this.listeners = []
   let handleValue = value => {
-    if (this.state !== PENDING) return
     if (value === this) {
       return handleReason(new TypeError("Can not fufill promise with itself"))
     }
@@ -60,21 +39,19 @@ function Promise(f) {
     if (isThenable(value)) {
       try {
         let then = value.then
-        if (isFunction(then)) {
-          return new Promise(then.bind(value)).then(handleValue, handleReason)
-        }
+        if (isFunction(then)) return handleValue(new Promise(then.bind(value)))
       } catch (error) {
         return handleReason(error)
       }
     }
     this.state = FULFILLED
     this.value = value
-    processTask(this)
+    notifyAll(this)
   }
   let handleReason = reason => {
     this.state = REJECTED
     this.reason = reason
-    processTask(this)
+    notifyAll(this)
   }
   let ignore = false
   let resolve = value => {
@@ -96,9 +73,8 @@ function Promise(f) {
 
 Promise.prototype.then = function(onFulfilled, onRejected) {
   return new Promise((resolve, reject) => {
-    this.isLastest = false
     this.listeners.push({ onFulfilled, onRejected, resolve, reject })
-    processTask(this)
+    this.state !== PENDING && notifyAll(this)
   })
 }
 
