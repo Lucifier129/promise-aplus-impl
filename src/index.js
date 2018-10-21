@@ -8,13 +8,13 @@ const PENDING = "pending"
 const FULFILLED = "fulfilled"
 const REJECTED = "rejected"
 
-const notify = (listener, state, value, reason) => {
-  let { onFulfilled, onRejected, resolve, reject } = listener
+const notify = (handler, state, result) => {
+  let { onFulfilled, onRejected, resolve, reject } = handler
   try {
     if (state === FULFILLED) {
-      isFunction(onFulfilled) ? resolve(onFulfilled(value)) : resolve(value)
+      isFunction(onFulfilled) ? resolve(onFulfilled(result)) : resolve(result)
     } else if (state === REJECTED) {
-      isFunction(onRejected) ? resolve(onRejected(reason)) : reject(reason)
+      isFunction(onRejected) ? resolve(onRejected(result)) : reject(result)
     }
   } catch (error) {
     reject(error)
@@ -22,47 +22,53 @@ const notify = (listener, state, value, reason) => {
 }
 
 const notifyAll = delay(promise => {
-  let { listeners, state, value, reason } = promise
-  while (listeners.length) notify(listeners.shift(), state, value, reason)
+  let { handlers, state, result } = promise
+  while (handlers.length) notify(handlers.shift(), state, result)
 })
+
+const transition = (promise, state, result) => {
+  if (promise.state !== PENDING) return
+  promise.state = state
+  promise.result = result
+  notifyAll(promise)
+}
+
+const checkValue = (promise, value, onFulfilled, onRejected) => {
+  if (value === promise) {
+    let reason = new TypeError("Can not fufill promise with itself")
+    return onRejected(reason)
+  }
+  if (value instanceof Promise) {
+    return value.then(onFulfilled, onRejected)
+  }
+  if (isThenable(value)) {
+    try {
+      let then = value.then
+      if (isFunction(then)) {
+        return new Promise(then.bind(value)).then(onFulfilled, onRejected)
+      }
+    } catch (error) {
+      return onRejected(error)
+    }
+  }
+  onFulfilled(value)
+}
 
 function Promise(f) {
   this.state = PENDING
-  this.listeners = []
-  let handleValue = value => {
-    if (value === this) {
-      return handleReason(new TypeError("Can not fufill promise with itself"))
-    }
-    if (value instanceof Promise) {
-      return value.then(handleValue, handleReason)
-    }
-    if (isThenable(value)) {
-      try {
-        let then = value.then
-        if (isFunction(then)) return handleValue(new Promise(then.bind(value)))
-      } catch (error) {
-        return handleReason(error)
-      }
-    }
-    this.state = FULFILLED
-    this.value = value
-    notifyAll(this)
-  }
-  let handleReason = reason => {
-    this.state = REJECTED
-    this.reason = reason
-    notifyAll(this)
-  }
+  this.handlers = []
+  let onFulfilled = value => transition(this, FULFILLED, value)
+  let onRejected = reason => transition(this, REJECTED, reason)
   let ignore = false
   let resolve = value => {
     if (ignore) return
     ignore = true
-    handleValue(value)
+    checkValue(this, value, onFulfilled, onRejected)
   }
   let reject = reason => {
     if (ignore) return
     ignore = true
-    handleReason(reason)
+    onRejected(reason)
   }
   try {
     f(resolve, reject)
@@ -73,7 +79,7 @@ function Promise(f) {
 
 Promise.prototype.then = function(onFulfilled, onRejected) {
   return new Promise((resolve, reject) => {
-    this.listeners.push({ onFulfilled, onRejected, resolve, reject })
+    this.handlers.push({ onFulfilled, onRejected, resolve, reject })
     this.state !== PENDING && notifyAll(this)
   })
 }
