@@ -9,10 +9,16 @@ const FULFILLED = "fulfilled"
 const REJECTED = "rejected"
 
 const notify = (listener, state, value, reason) => {
-  let { onFulfilled, onRejected } = listener
-  if (state === FULFILLED) return onFulfilled(value)
-  if (state === REJECTED) return onRejected(reason)
-  throw new Error(`unsupported state in pormise ${state}`)
+  let { onFulfilled, onRejected, resolve, reject } = listener
+  try {
+    if (state === FULFILLED) {
+      isFunction(onFulfilled) ? resolve(onFulfilled(value)) : resolve(value)
+    } else if (state === REJECTED) {
+      isFunction(onRejected) ? resolve(onRejected(reason)) : reject(reason)
+    }
+  } catch (error) {
+    reject(error)
+  }
 }
 
 const notifyAll = promise => {
@@ -84,31 +90,14 @@ function Promise(f) {
   try {
     f(resolve, reject)
   } catch (error) {
-    if (!ignore) reject(error)
+    reject(error)
   }
 }
 
 Promise.prototype.then = function(onFulfilled, onRejected) {
-  this.isLastest = false
   return new Promise((resolve, reject) => {
-    let handleFulfilled = value => {
-      if (!isFunction(onFulfilled)) return resolve(value)
-      try {
-        resolve(onFulfilled(value))
-      } catch (error) {
-        reject(error)
-      }
-    }
-    let handleRejected = reason => {
-      if (!isFunction(onRejected)) return reject(reason)
-      try {
-        resolve(onRejected(reason))
-      } catch (error) {
-        reject(error)
-      }
-    }
-    let listener = { onFulfilled: handleFulfilled, onRejected: handleRejected }
-    this.listeners.push(listener)
+    this.isLastest = false
+    this.listeners.push({ onFulfilled, onRejected, resolve, reject })
     processTask(this)
   })
 }
