@@ -1,0 +1,15 @@
+{
+  "name": "promise-aplus-impl",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "promises-aplus-tests adapter"
+  },
+  "keywords": [],
+  "author": "Jade Gu",
+  "license": "ISC",
+  "dependencies": {
+    "promises-aplus-tests": "^2.1.2"
+  }
+}
