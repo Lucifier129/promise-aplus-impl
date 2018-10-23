@@ -5,8 +5,7 @@
 	"main": "index.js",
 	"scripts": {
 		"test": "promises-aplus-tests adapter",
-    "test-rxjs": "promises-aplus-tests adapter-rxjs",
-    "test1": "node node_modules/mocha/bin/mocha 2.3.3"
+		"test-rxjs": "promises-aplus-tests adapter-rxjs"
 	},
 	"keywords": [],
 	"author": "Jade Gu",
