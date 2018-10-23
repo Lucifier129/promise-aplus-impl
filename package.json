@@ -1,15 +1,18 @@
 {
-  "name": "promise-aplus-impl",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "promises-aplus-tests adapter"
-  },
-  "keywords": [],
-  "author": "Jade Gu",
-  "license": "ISC",
-  "dependencies": {
-    "promises-aplus-tests": "^2.1.2"
-  }
+	"name": "promise-aplus-impl",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"test": "promises-aplus-tests adapter",
+    "test-rxjs": "promises-aplus-tests adapter-rxjs",
+    "test1": "node node_modules/mocha/bin/mocha 2.3.3"
+	},
+	"keywords": [],
+	"author": "Jade Gu",
+	"license": "ISC",
+	"dependencies": {
+		"promises-aplus-tests": "^2.1.2",
+		"rxjs": "^6.3.3"
+	}
 }
