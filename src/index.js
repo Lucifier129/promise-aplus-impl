@@ -3,6 +3,7 @@ const isFunction = obj => typeof obj === 'function'
 const toString = Object.prototype.toString
 const isObject = obj => toString.call(obj) === '[object Object]'
 const isThenable = obj => (isObject(obj) || isFunction(obj)) && 'then' in obj
+const isPromise = promise => promise instanceof Promise
 
 const PENDING = Symbol('pending')
 const FULFILLED = Symbol('fulfilled')
@@ -91,10 +92,7 @@ Promise.prototype.catch = function(onRejected) {
 Promise.resolve = value => new Promise(resolve => resolve(value))
 Promise.reject = reason => new Promise((_, reject) => reject(reason))
 
-const checkPromise = promise => {
-	if (promise instanceof Promise) return
-	throw new Error(`Expected promise but got ${promise} instead.`)
-}
+
 
 Promise.all = (promises = []) => {
 	return new Promise((resolve, reject) => {
@@ -106,16 +104,22 @@ Promise.all = (promises = []) => {
 			count === promises.length && resolve(values)
 		}
 		promises.forEach((promise, i) => {
-			checkPromise(promise)
-			promise.then(collectValue(i), reject)
+			if (isPromise(promise)) {
+				promise.then(collectValue(i), reject)
+			} else {
+				collectValue(i)(promise)
+			}	
 		})
 	})
 }
 Promise.race = (promises = []) => {
 	return new Promise((resolve, reject) =>
 		promises.forEach(promise => {
-			checkPromise(promise)
-			promise.then(resolve, reject)
+			if (isPromise(promise)) {
+				promise.then(resolve, reject)
+			} else {
+				resolve(promise)
+			}
 		})
 	)
 }
