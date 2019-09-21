@@ -5,7 +5,8 @@
 	"main": "index.js",
 	"scripts": {
 		"test": "promises-aplus-tests adapter",
-		"test-rxjs": "promises-aplus-tests adapter-rxjs"
+		"test-rxjs": "promises-aplus-tests adapter-rxjs",
+		"test-naive": "promises-aplus-tests adapter-naive"
 	},
 	"keywords": [],
 	"author": "Jade Gu",
